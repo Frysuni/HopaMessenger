@@ -1,10 +1,12 @@
+const bcrypt = require('bcryptjs');
 const { client } = require('./databaseConnect.js');
 
 
 async function compareAuth(result, password) {
     if (!result.rows[0]) { return 'Пользователя с таким именем не существует.'; }
-    else if (result.rows[0].password != password) { return 'Неверный пароль.'; }
-    else if (result.rows[0].password === password) { return false; }
+    else if (!password) { return 'Пароль не может быть пустым.'; }
+    else if (!bcrypt.compareSync(password, result.rows[0].password)) { return 'Неверный пароль.'; }
+    else if (bcrypt.compareSync(password, result.rows[0].password)) { return false; }
     else { return 'Неизвестная ошибка. Обратитесь к разработчику. API:authorization/authorizateMember.js:compareAuth'; }
 }
 
