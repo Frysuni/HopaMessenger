@@ -8,7 +8,7 @@ async function MessageHandler(message, clients) {
     if (message.startsWith('message ')) {
         const AuthRecive = JSON.parse(message.slice(8));
         if (AuthedMembers[AuthRecive.author] != 'auth') {
-            return '{"status":"Вы не авторизованы. Кого ты решил взломать"}';
+            return '{"Пошел нахуй":"Вы не авторизованы. Кого ты решил взломать?"}';
         }
         Chatter(AuthRecive, clients);
     }

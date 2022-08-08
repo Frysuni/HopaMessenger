@@ -4,7 +4,8 @@
   "description": "Мессенджер Норы! mex312 Client-side and Frys Backend",
   "main": "index.js",
   "scripts": {
-    "test": "node ./index.js"
+    "zero": "npm install npm -g && npm install pm2 -g && npm install && npm run pm2start",
+    "pm2start": "pm2 start ecosystem.config.js && pm2 save && pm2 startup && pm2 save"
   },
   "repository": {
     "type": "git",
