@@ -1,0 +1,26 @@
+{
+  "name": "hopa_messenger_serverside",
+  "version": "1.0.0",
+  "description": "Мессенджер Норы! mex312 Client-side and Frys Backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frysuni/HopaMessenger.git"
+  },
+  "author": "Frys",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Frysuni/HopaMessenger/issues"
+  },
+  "homepage": "https://github.com/Frysuni/HopaMessenger#readme",
+  "devDependencies": {
+    "eslint": "^8.21.0"
+  },
+  "dependencies": {
+    "pg": "^8.7.3",
+    "ws": "^8.8.1"
+  }
+}
