@@ -113,12 +113,7 @@ public class MainApp {
     }
 
     public MainApp() throws Throwable {
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                disconnect();
-            }
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(MainApp::disconnect));
 
         /*con.setRequestMethod("GET");
         con.setRequestProperty("Content-Type", "application/json");
