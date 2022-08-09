@@ -1,4 +1,5 @@
 const WebSocketServer = require('ws');
+const { Logger } = require('../logger/logger');
 
 const WebSocketSrv = new WebSocketServer.Server({
     port: 8553,
@@ -18,5 +19,5 @@ const WebSocketSrv = new WebSocketServer.Server({
       threshold: 1024
     }
 });
-
+Logger.Debug('WebSocket is started');
 module.exports = { WebSocketSrv };

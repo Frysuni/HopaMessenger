@@ -1,5 +1,6 @@
 const fs = require('fs');
 const WebSocket = require('ws');
+const { Logger } = require('../logger/logger');
 
 const HexSym = ['A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -20,6 +21,7 @@ async function keyGenerate(clients) {
             }
         });
     }
+    Logger.Info('Новый ключ сгенерирован.');
     return Key;
 }
 
@@ -30,6 +32,7 @@ async function getKey(clients) {
             key: await keyGenerate()
         };
         fs.writeFileSync('./src/crypter/crypter.key', JSON.stringify(KeyObj));
+        Logger.Debug('Создан crypter.key');
         return KeyObj.key;
     }
     else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day != new Date().getHours()) {
