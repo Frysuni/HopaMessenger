@@ -10,51 +10,21 @@ import java.net.URI;
 import java.util.Map;
 
 public class MyWebSocketClient extends WebSocketClient {
-    private final String username;
-    private final String password;
 
-    public MyWebSocketClient(URI serverUri, String username, String password) {
+    public MyWebSocketClient(URI serverUri) {
         super(serverUri);
-        this.username = username;
-        this.password = password;
-    }
-
-    public MyWebSocketClient(URI serverUri, Draft protocolDraft, String username, String password) {
-        super(serverUri, protocolDraft);
-        this.username = username;
-        this.password = password;
-    }
-
-    public MyWebSocketClient(URI serverUri, Map<String, String> httpHeaders, String username, String password) {
-        super(serverUri, httpHeaders);
-        this.username = username;
-        this.password = password;
-    }
-
-    public MyWebSocketClient(URI serverUri, Draft protocolDraft, Map<String, String> httpHeaders, String username, String password) {
-        super(serverUri, protocolDraft, httpHeaders);
-        this.username = username;
-        this.password = password;
-    }
-
-    public MyWebSocketClient(URI serverUri, Draft protocolDraft, Map<String, String> httpHeaders, int connectTimeout, String username, String password) {
-        super(serverUri, protocolDraft, httpHeaders, connectTimeout);
-        this.username = username;
-        this.password = password;
     }
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-        JSONObject json = new JSONObject();
-        json.put("username", username);
-        json.put("password", password);
-        send("auth " + json.toJSONString());
+        System.out.println("Connected");
+        MainApp.loginConnectionSicrle.connected();
     }
 
     @Override
     public void onMessage(String s) {
         if(s.startsWith("auth ")){
-            s = s.replace("auth ", "");
+            s = s.replaceFirst("auth ", "");
             JSONParser parser = new JSONParser();
             JSONObject json = null;
             try {
@@ -63,11 +33,10 @@ public class MyWebSocketClient extends WebSocketClient {
                 System.out.println("Corrupted json received: " + s);
             }
             if(json != null) {
-                Boolean status = (Boolean) json.get("status");
                 MainApp.handleConnection(json);
             }
         } else if(s.startsWith("message ")){
-            s = s.replace("message ", "");
+            s = s.replaceFirst("message ", "");
             JSONParser parser = new JSONParser();
             JSONObject json = null;
             try {
@@ -79,7 +48,7 @@ public class MyWebSocketClient extends WebSocketClient {
                 MainApp.handleMessage(json);
             }
         } else if(s.startsWith("disconnect ")) {
-            s = s.replace("disconnect ", "");
+            s = s.replaceFirst("disconnect ", "");
             JSONParser parser = new JSONParser();
             JSONObject json = null;
             try {
@@ -89,6 +58,18 @@ public class MyWebSocketClient extends WebSocketClient {
             }
             if(json != null){
                 MainApp.handleDisconnection(json);
+            }
+        } else if(s.startsWith("map ")) {
+            s = s.replaceFirst("map ", "");
+            JSONParser parser = new JSONParser();
+            JSONObject json = null;
+            try {
+                json = (JSONObject) parser.parse(s);
+            } catch (Throwable e) {
+                System.out.println("Corrupted json received: " + s);
+            }
+            if(json != null){
+                MainApp.handleMap(json);
             }
         } else if(s.startsWith("{")){
             System.out.println("Missing prefix: " + s);
@@ -100,26 +81,21 @@ public class MyWebSocketClient extends WebSocketClient {
     @Override
     public void onClose(int i, String s, boolean b) {
         System.out.println("Connection closed");
+        MainApp.loginConnectionSicrle.disconnected();
+        MainApp.enableLoginScreen();
+        MainApp.reconnect();
     }
 
     @Override
     public void onError(Exception e) {
-        System.out.println("ERROR:");
+        System.out.println("ERROR: " + e.getMessage());
         e.printStackTrace();
     }
 
     public void sendMessage(String message){
         JSONObject json = new JSONObject();
         json.put("content", message);
-        json.put("author", username);
+        json.put("author", MainApp.username);
         send("message " + json.toJSONString());
-    }
-
-    public String getUsername(){
-        return username;
-    }
-
-    public String getPassword(){
-        return password;
     }
 }
