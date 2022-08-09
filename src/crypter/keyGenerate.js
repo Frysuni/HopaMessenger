@@ -1,4 +1,5 @@
 const fs = require('fs');
+const WebSocket = require('ws');
 
 const HexSym = ['A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -7,15 +8,22 @@ async function takeRandomSymbol() {
     return HexSym[RandomInt];
 }
 
-async function keyGenerate() {
+async function keyGenerate(clients) {
     let Key = '';
     for (let i = 0; i != 10; i++) {
         Key += await takeRandomSymbol();
     }
+    if (clients) {
+        clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send('newkey ' + Key);
+            }
+        });
+    }
     return Key;
 }
 
-async function getKey() {
+async function getKey(clients) {
     if (!fs.existsSync('./src/crypter/crypter.key')) {
         const KeyObj = {
             hour: new Date().getHours(),
@@ -24,15 +32,15 @@ async function getKey() {
         fs.writeFileSync('./src/crypter/crypter.key', JSON.stringify(KeyObj));
         return KeyObj.key;
     }
-    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day != new Date().getDate()) {
+    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day != new Date().getHours()) {
         const KeyObj = {
             hour: new Date().getHours(),
-            key: await keyGenerate()
+            key: await keyGenerate(clients)
         };
         fs.writeFileSync('./src/crypter/crypter.key', JSON.stringify(KeyObj));
         return KeyObj.key;
     }
-    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day == new Date().getDate()) {
+    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day == new Date().getHours()) {
         return JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).key;
     }
     else { return 'error'; }

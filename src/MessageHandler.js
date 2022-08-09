@@ -6,7 +6,7 @@ const { getKey } = require('./crypter/keyGenerate.js');
 const AuthedMembers = {};
 
 async function MessageHandler(message, clients) {
-    const key = await getKey();
+    const key = await getKey(clients);
     if (message.startsWith('message ')) {
         const AuthRecive = JSON.parse(message.slice(8));
         if (AuthedMembers[AuthRecive.author] != 'auth') {
@@ -21,7 +21,7 @@ async function MessageHandler(message, clients) {
             AuthedMembers[AuthResponce.username] = 'auth';
             const map = {
                 key,
-                AuthedMembers: Object.keys(AuthedMembers)
+                authedmembers: Object.keys(AuthedMembers)
             };
             return `map ${JSON.stringify(map)}`;
         }
