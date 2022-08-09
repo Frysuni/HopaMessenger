@@ -34,7 +34,7 @@ async function MessageHandler(message, clients) {
             };
             Logger.Info(AuthResponce.username + ' авторизован успешно.');
             Logger.Debug(`SEND TO CLIENT: map ${JSON.stringify(map)}`);
-            declareAuth(clients, AuthResponce);
+            setTimeout(() => declareAuth(clients, AuthResponce), 200);
             return `map ${JSON.stringify(map)}`;
         }
     }
