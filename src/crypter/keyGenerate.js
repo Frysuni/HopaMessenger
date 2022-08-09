@@ -35,7 +35,7 @@ async function getKey(clients) {
         Logger.Debug('Создан crypter.key');
         return KeyObj.key;
     }
-    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day != new Date().getHours()) {
+    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).hour != new Date().getHours()) {
         const KeyObj = {
             hour: new Date().getHours(),
             key: await keyGenerate(clients)
@@ -43,7 +43,7 @@ async function getKey(clients) {
         fs.writeFileSync('./src/crypter/crypter.key', JSON.stringify(KeyObj));
         return KeyObj.key;
     }
-    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).day == new Date().getHours()) {
+    else if (JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).hour == new Date().getHours()) {
         return JSON.parse(fs.readFileSync('./src/crypter/crypter.key')).key;
     }
     else { return 'error'; }

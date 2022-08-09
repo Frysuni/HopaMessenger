@@ -5,7 +5,14 @@ const { getKey } = require('./crypter/keyGenerate.js');
 const { Logger } = require('./logger/logger.js');
 
 const AuthedMembers = {};
-
+async function declareAuth(clients, AuthResponce) {
+            Logger.Debug('SEND TO ALL: ' + JSON.stringify(AuthResponce));
+            clients.forEach(function each(client) {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send('auth ' + JSON.stringify(AuthResponce));
+                }
+            });
+        }
 async function MessageHandler(message, clients) {
     const key = await getKey(clients);
     if (message.startsWith('message ')) {
@@ -27,14 +34,9 @@ async function MessageHandler(message, clients) {
             };
             Logger.Info(AuthResponce.username + ' авторизован успешно.');
             Logger.Debug(`SEND TO CLIENT: map ${JSON.stringify(map)}`);
+            declareAuth(clients, AuthResponce);
             return `map ${JSON.stringify(map)}`;
         }
-        Logger.Debug('SEND TO ALL: ' + JSON.stringify(AuthResponce));
-        clients.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send('auth ' + JSON.stringify(AuthResponce));
-            }
-        });
     }
     else if (message.startsWith('disconnect ')) {
         const AuthResponce = await authorizateMember(JSON.parse(message.slice(11)));
@@ -45,7 +47,7 @@ async function MessageHandler(message, clients) {
         }
 
         delete AuthResponce.reason;
-        Logger.Debug('SEND TO ALL: ' + JSON.stringify(AuthResponce));
+        Logger.Debug('SEND TO ALL: disconnect ' + JSON.stringify(AuthResponce));
         clients.forEach(function each(client) {
             if (client.readyState === WebSocket.OPEN) {
                 client.send('disconnect ' + JSON.stringify(AuthResponce));
