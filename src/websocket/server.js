@@ -1,7 +1,7 @@
-const WebSocketServer = require('ws');
+const WebSocket = require('ws');
 const { Logger } = require('../logger/logger');
 
-const WebSocketSrv = new WebSocketServer.Server({
+const WebSocketSrv = new WebSocket.Server({
     port: 8553,
     perMessageDeflate: {
       zlibDeflateOptions: {
@@ -19,5 +19,6 @@ const WebSocketSrv = new WebSocketServer.Server({
       threshold: 1024
     }
 });
+
 Logger.Debug('WebSocket is started');
 module.exports = { WebSocketSrv };
