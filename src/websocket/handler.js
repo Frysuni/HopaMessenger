@@ -3,7 +3,7 @@ const { WebSocketSrv } = require('./server.js');
 const { Logger } = require('../logger/logger.js');
 const { authorizateMember } = require('../authorization/authorizateMember.js');
 const { declareConnect, declareDisconnect } = require('../authorization/declare.js');
-const { Chatter } = require('../chat/chatter.js');
+const { MessageHandler } = require('../MessageHandler.js');
 
 WebSocketSrv.on('connection', async (WSConnection, WSConnectionData) => {
     WSConnection.ip = WSConnectionData.socket.remoteAddress.replace('::ffff:', '');
@@ -46,6 +46,6 @@ WebSocketSrv.on('connection', async (WSConnection, WSConnectionData) => {
 
     WSConnection.on('message', async (msg) => {
         Logger.Debug('RECIEVE: ' + msg);
-        WSConnection.send(await Chatter(`${msg}`, WebSocketSrv.clients));
+        WSConnection.send(await MessageHandler(`${msg}`, WebSocketSrv.clients, WSConnection));
     });
 });
