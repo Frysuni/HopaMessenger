@@ -11,10 +11,7 @@ import org.springframework.security.crypto.keygen.KeyGenerators;
 import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
@@ -104,6 +101,30 @@ public class MainApp {
                 }
             }
         });
+        usernameField.addActionListener(action -> {
+            passwordField.grabFocus();
+        });
+        passwordField.addActionListener(action -> {
+            if(usernameField.getText().equals("") || new String(passwordField.getPassword()).equals("")){
+                loginErrorLabel.setText("Поля ввода не могут быть пустыми");
+            } else {
+                client.clearHeaders();
+                client.addHeader("username", usernameField.getText());
+                client.addHeader("password", new String(passwordField.getPassword()));
+                if(!isConnecting) {
+                    if(isUsed) {
+                        client.reconnect();
+                    } else {
+                        client.connect();
+                        isUsed = true;
+                    }
+                    isConnecting = true;
+                    password = new String(passwordField.getPassword());
+                    username = usernameField.getText();
+                    loginErrorLabel.setText("Подключение...");
+                }
+            }
+        });
         /*loginButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -155,6 +176,7 @@ public class MainApp {
     public static JEditorPane chatContentPane = new JEditorPane();
     public static JEditorPane onlineMembersPane = new JEditorPane();
     public static JLabel keyErrorLabel = new JLabel("");
+    public static Encryptor encryptor;
     static {
         chatPanel.setLayout(null);
         chatPanel.setPreferredSize(new Dimension(800, 600));
@@ -214,7 +236,11 @@ public class MainApp {
                 message = message.substring(0, index);
             }
             if(!message.equals("")) {
-                client.sendMessage(message);
+                if (encryptor == null) {
+                    client.sendMessage(message, false);
+                } else {
+                    client.sendMessage(encryptor.encrypt(message), true);
+                }
                 inputArea.setText("");
                 inputHereLabel.setVisible(true);
             }
@@ -243,10 +269,70 @@ public class MainApp {
             }
         });
         inputArea.addKeyListener(new KeyAdapter() {
+            boolean isShiftPressed = false;
+
             @Override
             public void keyTyped(KeyEvent e) {
-                super.keyTyped(e);
                 inputHereLabel.setVisible(inputArea.getText().equals(""));
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    isShiftPressed = true;
+                }
+                if(e.getKeyCode() == KeyEvent.VK_ENTER && !isShiftPressed) {
+                    String message = inputArea.getText();
+                    while(message.endsWith("\n")){
+                        int index = message.lastIndexOf("\n");
+                        message = message.substring(0, index);
+                    }
+                    while(message.startsWith("\n")){
+                        message = message.replaceFirst("\n", "");
+                    }
+                    if(!message.equals("")) {
+                        if (encryptor == null) {
+                            client.sendMessage(message, false);
+                        } else {
+                            client.sendMessage(encryptor.encrypt(message), true);
+                        }
+                    }
+                    inputArea.setText("");
+                    inputHereLabel.setVisible(true);
+                }
+                else if(e.getKeyCode() == KeyEvent.VK_ENTER && isShiftPressed) {
+                    inputArea.setText(inputArea.getText() + "\n");
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    isShiftPressed = false;
+                }
+            }
+        });
+        keyField.addActionListener(event -> {
+            String newKey = keyField.getText();
+
+            if(newKey.equals("")) {
+                keyErrorLabel.setText("Шифрование отключено. Обновляю чат...");
+                keyErrorLabel.paintImmediately(0, 0, 490, 25);
+                keyStatusLabel.setText("Без шифрования");
+                encryptor = null;
+                reloadChatContent();
+            }
+            else {
+                try {
+                    new Encryptor(newKey).encrypt("TEST");
+                    encryptor = new Encryptor(newKey);
+                    keyErrorLabel.setText("Ключ установлен. Обновляю чат...");
+                    keyErrorLabel.paintImmediately(0, 0, 490, 25);
+                    keyStatusLabel.setText("Шифрование ключом " + newKey);
+                    reloadChatContent();
+                } catch (Throwable ex) {
+                    keyErrorLabel.setText("Невозможный ключ");
+                }
             }
         });
 
@@ -276,7 +362,7 @@ public class MainApp {
     }
     public static HashSet<String> onlineMembers = new HashSet<>();
     public static ArrayList<Message> messages = new ArrayList<>();
-    public static Encryptor encryptor;
+
     public static void reloadOnlineMembers(){
         onlineMembersPane.setText("");
 
@@ -310,6 +396,7 @@ public class MainApp {
     }
     public static void printNewChatMessage(Message message){
         StringBuilder out = new StringBuilder(chatContentPane.getText());
+        messages.add(message);
         if(encryptor != null) {
             try {
                 String decrypted = encryptor.decrypt(message.encryptedPart);
@@ -324,12 +411,6 @@ public class MainApp {
             out.append('\n');
         }
         chatContentPane.setText(out.toString());
-    }
-    public static void createNewChatMessage(String content, String encryptedContent){
-        Message message = new Message(content, encryptedContent);
-        messages.add(message);
-
-        printNewChatMessage(message);
     }
 
 
@@ -392,10 +473,10 @@ public class MainApp {
         mainFrame.setVisible(true);
         mainFrame.setResizable(false);
 
-        createNewChatMessage("mex312 присоеденился к чату", "");
-        createNewChatMessage("mex312: ", "Это не зашифрованное сообщение");
-        createNewChatMessage("mex312: ", new Encryptor("FFFF").encrypt("Это зашифрованное сообщение"));
-        createNewChatMessage("mex312: ", new Encryptor("1111").encrypt("Это другое зашифрованное сообщение"));
+        //printNewChatMessage(new Message("mex312 присоеденился к чату", ""));
+        //printNewChatMessage(new Message("mex312: Это не зашифрованное сообщение", ""));
+        //printNewChatMessage(new Message("mex312: ", new Encryptor("FFFF").encrypt("Это зашифрованное сообщение")));
+        //printNewChatMessage(new Message("mex312: ", new Encryptor("1111").encrypt("Это другое зашифрованное сообщение")));
     }
 
     public static void main(String[] args) throws Throwable {

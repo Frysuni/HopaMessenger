@@ -14,7 +14,7 @@ public class HopaMessengerMessageHandler implements ClientMessageHandler {
         MainApp.addOnlineMember(username);
 
         System.out.printf("%s %s joined the chat.%n", time, username);
-        MainApp.createNewChatMessage(time + " " + username + " присоединился к чату!", "");
+        MainApp.printNewChatMessage(new Message(time + " " + username + " присоединился к чату!", ""));
     }
 
     @Override
@@ -25,7 +25,7 @@ public class HopaMessengerMessageHandler implements ClientMessageHandler {
         MainApp.removeOnlineMember(username);
 
         System.out.printf("%s %s disconnected from chat.%n", time, username);
-        MainApp.createNewChatMessage(time + " " + username + " вышел из чата.", "");
+        MainApp.printNewChatMessage(new Message(time + " " + username + " вышел из чата.", ""));
     }
 
     @Override
@@ -47,8 +47,14 @@ public class HopaMessengerMessageHandler implements ClientMessageHandler {
         String time = MainApp.getTimeFromStamp((Long)json.get("timestamp"));
         String author = (String) json.get("author");
         String content = (String) json.get("content");
+        Boolean isEncrypted = (Boolean) json.get("isEncrypted");
 
         System.out.printf("%s: %s\n%s%n", author, content, time);
-        MainApp.createNewChatMessage(time + " " + author + ": ", content);
+        if(isEncrypted) {
+            MainApp.printNewChatMessage(new Message(time + " " + author + ": ", content));
+        }
+        else {
+            MainApp.printNewChatMessage(new Message(time + " " + author + ": " + content, ""));
+        }
     }
 }

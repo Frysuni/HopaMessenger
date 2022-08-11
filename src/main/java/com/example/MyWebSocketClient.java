@@ -31,6 +31,7 @@ public class MyWebSocketClient extends WebSocketClient {
 
     @Override
     public void onMessage(String s) {
+        System.out.println(s);
         if(s.startsWith("message ")){
             s = s.replaceFirst("message ", "");
             JSONObject json = null;
@@ -43,8 +44,8 @@ public class MyWebSocketClient extends WebSocketClient {
                 handler.onMessage(json);
             }
         }
-        else if(s.startsWith("disconnected ")) {
-            s = s.replaceFirst("disconnected ", "");
+        else if(s.startsWith("disconnect ")) {
+            s = s.replaceFirst("disconnect ", "");
             JSONObject json = null;
             try {
                 json = (JSONObject) parser.parse(s);
@@ -55,8 +56,8 @@ public class MyWebSocketClient extends WebSocketClient {
                 handler.onDisconnection(json);
             }
         }
-        else if(s.startsWith("connected ")) {
-            s = s.replaceFirst("connected ", "");
+        else if(s.startsWith("connect ")) {
+            s = s.replaceFirst("connect ", "");
             JSONObject json = null;
             try {
                 json = (JSONObject) parser.parse(s);
@@ -111,6 +112,7 @@ public class MyWebSocketClient extends WebSocketClient {
         MainApp.enableLoginScreen();
 
         MainApp.isConnecting = false;
+        MainApp.onlineMembers.clear();
     }
 
     @Override
@@ -119,10 +121,10 @@ public class MyWebSocketClient extends WebSocketClient {
         e.printStackTrace();
     }
 
-    public void sendMessage(String message){
+    public void sendMessage(String message, boolean isEncrypted){
         JSONObject json = new JSONObject();
         json.put("content", message);
-        json.put("author", MainApp.username);
+        json.put("isEncrypted", isEncrypted);
         send("message " + json.toJSONString());
     }
 }
