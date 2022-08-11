@@ -9,6 +9,7 @@ import org.springframework.security.crypto.keygen.KeyGenerators;
 
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -28,15 +29,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MainApp {
-    final URL url = new URL("http://jsonplaceholder.typicode.com/posts?_limit=10");
-    final HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-    Scanner input = new Scanner(System.in);
-
+    // Some booleans
     public static boolean isOnLoginScreen = false;
+    public static boolean isConnecting = false;
+    public static boolean isUsed = false;
 
-    public static ArrayList<String> onlineMembers;
 
+    // Server's URI
     public static final URI serverUri;
     static {
         URI serverUri1;
@@ -49,20 +48,28 @@ public class MainApp {
         serverUri = serverUri1;
     }
 
+
+    // Main client
     static MyWebSocketClient client;
+
+
+    // This user's data
     public static String username;
     public static String password;
-    public static String encryptKey;
 
+
+    // Colors for UI
     public static Color backgroundColor = new Color(80, 80, 100);
     public static Color contentBackgroundColor = new Color(100, 100, 120);
     public static Color buttonColor = new Color(60, 60, 80);
     public static Color foregroundColor = new Color(200, 200, 200);
 
+
+    // Main frame
     public static JFrame mainFrame = new JFrame("HopaMessenger");
 
-    public static ConnectionSicrle loginConnectionSicrle = new ConnectionSicrle();
 
+    // All things login screen needs
     public static JPanel loginPanel = new JPanel();
     public static JLabel loginErrorLabel = new JLabel();
     static {
@@ -71,26 +78,30 @@ public class MainApp {
         loginPanel.setBounds(0, 0, 500, 300);
 
         JLabel fryshostLabel = new JLabel("Введите данные учётной записи FrysHost");
-        JLabel usernameLabel = new JLabel("Ник: ");
+        JLabel usernameLabel = new JLabel("Логин: ");
         JLabel passwordLabel = new JLabel("Пароль: ");
         JTextField usernameField = new JTextField();
         JPasswordField passwordField = new JPasswordField();
         JButton loginButton = new JButton("Войти");
         loginButton.addActionListener(action -> {
-            if(client.isOpen()) {
-                if(usernameField.getText().equals("") || new String(passwordField.getPassword()).equals("")){
-                    loginErrorLabel.setText("Поля ввода не могут быть пустыми");
-                } else {
-                    JSONObject json = new JSONObject();
-                    json.put("username", usernameField.getText());
-                    json.put("password", new String(passwordField.getPassword()));
-                    client.send("auth " + json.toJSONString());
+            if(usernameField.getText().equals("") || new String(passwordField.getPassword()).equals("")){
+                loginErrorLabel.setText("Поля ввода не могут быть пустыми");
+            } else {
+                client.clearHeaders();
+                client.addHeader("username", usernameField.getText());
+                client.addHeader("password", new String(passwordField.getPassword()));
+                if(!isConnecting) {
+                    if(isUsed) {
+                        client.reconnect();
+                    } else {
+                        client.connect();
+                        isUsed = true;
+                    }
+                    isConnecting = true;
                     password = new String(passwordField.getPassword());
                     username = usernameField.getText();
-                    loginErrorLabel.setText("");
+                    loginErrorLabel.setText("Подключение...");
                 }
-            } else {
-                loginErrorLabel.setText("Нет подключения к серверу");
             }
         });
         /*loginButton.addMouseListener(new MouseAdapter() {
@@ -128,7 +139,6 @@ public class MainApp {
         passwordField.setBounds(100, 75, 300, 25);
         loginButton.setBounds(150, 125, 200, 50);
         loginErrorLabel.setBounds(25, 200, 450, 25);
-        loginConnectionSicrle.setBounds(470, 10, 20, 20);
 
         loginPanel.add(fryshostLabel);
         loginPanel.add(usernameField);
@@ -137,13 +147,14 @@ public class MainApp {
         loginPanel.add(passwordLabel);
         loginPanel.add(loginButton);
         loginPanel.add(loginErrorLabel);
-        loginPanel.add(loginConnectionSicrle);
     }
 
 
+    // All things chat screen needs
     public static JPanel chatPanel = new JPanel();
     public static JEditorPane chatContentPane = new JEditorPane();
     public static JEditorPane onlineMembersPane = new JEditorPane();
+    public static JLabel keyErrorLabel = new JLabel("");
     static {
         chatPanel.setLayout(null);
         chatPanel.setPreferredSize(new Dimension(800, 600));
@@ -152,10 +163,12 @@ public class MainApp {
         JScrollPane scrollPane = new JScrollPane(chatContentPane);
         JScrollBar scrollBar = scrollPane.getVerticalScrollBar();
         JButton sendButton = new JButton("Отправить");
+        JButton applyKeyButton = new JButton("Применить");
         JTextArea inputArea = new JTextArea();
         JTextField keyField = new JTextField();
         JLabel keyLabel = new JLabel("Ключ:");
         JLabel inputHereLabel = new JLabel("Написать в чат");
+        JTextField keyStatusLabel = new JTextField("Без шифрования");
         JScrollPane onlineMembersScrollPane = new JScrollPane(onlineMembersPane);
 
         chatPanel.setBackground(backgroundColor);
@@ -164,6 +177,7 @@ public class MainApp {
         keyField.setBackground(contentBackgroundColor);
         chatContentPane.setBackground(contentBackgroundColor);
         sendButton.setBackground(buttonColor);
+        applyKeyButton.setBackground(buttonColor);
 
         onlineMembersPane.setForeground(foregroundColor);
         chatContentPane.setForeground(foregroundColor);
@@ -171,14 +185,22 @@ public class MainApp {
         keyField.setForeground(foregroundColor);
         keyLabel.setForeground(foregroundColor);
         sendButton.setForeground(foregroundColor);
+        applyKeyButton.setForeground(foregroundColor);
         loginErrorLabel.setForeground(foregroundColor);
+        keyErrorLabel.setForeground(foregroundColor);
+        keyStatusLabel.setForeground(foregroundColor);
 
         onlineMembersScrollPane.setBorder(null);
         keyField.setBorder(null);
         chatContentPane.setBorder(null);
         scrollPane.setBorder(null);
+        keyStatusLabel.setBorder(null);
+        keyStatusLabel.setOpaque(false);
+        keyStatusLabel.setEditable(false);
         sendButton.setBorderPainted(false);
         sendButton.setFocusable(false);
+        applyKeyButton.setBorderPainted(false);
+        applyKeyButton.setFocusable(false);
 
         chatContentPane.setEditable(false);
         onlineMembersPane.setEditable(false);
@@ -187,7 +209,7 @@ public class MainApp {
         scrollPane.remove(scrollPane.getHorizontalScrollBar());
         sendButton.addActionListener(action -> {
             String message = inputArea.getText();
-            while(message.endsWith("\n") && message.length() > 0){
+            while(message.endsWith("\n")){
                 int index = message.lastIndexOf("\n");
                 message = message.substring(0, index);
             }
@@ -195,6 +217,29 @@ public class MainApp {
                 client.sendMessage(message);
                 inputArea.setText("");
                 inputHereLabel.setVisible(true);
+            }
+        });
+        applyKeyButton.addActionListener( action -> {
+            String newKey = keyField.getText();
+
+            if(newKey.equals("")) {
+                keyErrorLabel.setText("Шифрование отключено. Обновляю чат...");
+                keyErrorLabel.paintImmediately(0, 0, 490, 25);
+                keyStatusLabel.setText("Без шифрования");
+                encryptor = null;
+                reloadChatContent();
+            }
+            else {
+                try {
+                    new Encryptor(newKey).encrypt("TEST");
+                    encryptor = new Encryptor(newKey);
+                    keyErrorLabel.setText("Ключ установлен. Обновляю чат...");
+                    keyErrorLabel.paintImmediately(0, 0, 490, 25);
+                    keyStatusLabel.setText("Шифрование ключом " + newKey);
+                    reloadChatContent();
+                } catch (Throwable ex) {
+                    keyErrorLabel.setText("Невозможный ключ");
+                }
             }
         });
         inputArea.addKeyListener(new KeyAdapter() {
@@ -213,16 +258,25 @@ public class MainApp {
         sendButton.setBounds(675, 450, 100, 66);
         keyLabel.setBounds(135, 525, 50, 25);
         keyField.setBounds(185, 525, 490, 25);
+        applyKeyButton.setBounds(675, 525, 100, 25);
+        keyStatusLabel.setBounds(185, 550, 490, 25);
+        keyErrorLabel.setBounds(185, 575, 490, 25);
         inputHereLabel.setBounds(25, 20, 100, 25);
 
         chatPanel.add(scrollPane);
         chatPanel.add(inputArea);
         chatPanel.add(sendButton);
+        chatPanel.add(applyKeyButton);
         chatPanel.add(keyField);
         chatPanel.add(keyLabel);
+        chatPanel.add(keyStatusLabel);
+        chatPanel.add(keyErrorLabel);
         chatPanel.add(onlineMembersScrollPane);
         inputArea.add(inputHereLabel);
     }
+    public static HashSet<String> onlineMembers = new HashSet<>();
+    public static ArrayList<Message> messages = new ArrayList<>();
+    public static Encryptor encryptor;
     public static void reloadOnlineMembers(){
         onlineMembersPane.setText("");
 
@@ -230,8 +284,56 @@ public class MainApp {
             onlineMembersPane.setText(onlineMembersPane.getText() + member + "\n");
         }
     }
+    public static void reloadChatContent(){
+        ArrayList<Message> messages = (ArrayList<Message>) MainApp.messages.clone();
+        StringBuilder out = new StringBuilder();
+        if(encryptor != null) {
+            for(Message message : messages){
+                try {
+                    String decrypted = encryptor.decrypt(message.encryptedPart);
+                    out.append(message.getNotEncryptedPart()).append(decrypted);
+                } catch (Throwable ex) {
+                    out.append(message.getNotEncryptedPart()).append(message.getEncryptedPart());
+                }
+                out.append('\n');
+            }
+        }
+        else {
+            for(Message message : messages){
+                out.append(message.getNotEncryptedPart()).append(message.getEncryptedPart());
+                out.append('\n');
+            }
+        }
+
+        chatContentPane.setText(out.toString());
+        keyErrorLabel.setText("Чат успешно перешифрован");
+    }
+    public static void printNewChatMessage(Message message){
+        StringBuilder out = new StringBuilder(chatContentPane.getText());
+        if(encryptor != null) {
+            try {
+                String decrypted = encryptor.decrypt(message.encryptedPart);
+                out.append(message.getNotEncryptedPart()).append(decrypted);
+            } catch (Throwable ex) {
+                out.append(message.getNotEncryptedPart()).append(message.getEncryptedPart());
+            }
+            out.append('\n');
+        }
+        else {
+            out.append(message.getNotEncryptedPart()).append(message.getEncryptedPart());
+            out.append('\n');
+        }
+        chatContentPane.setText(out.toString());
+    }
+    public static void createNewChatMessage(String content, String encryptedContent){
+        Message message = new Message(content, encryptedContent);
+        messages.add(message);
+
+        printNewChatMessage(message);
+    }
 
 
+    // Switching between screens
     public static void enableChatScreen(){
         if(isOnLoginScreen) {
             mainFrame.remove(loginPanel);
@@ -242,7 +344,6 @@ public class MainApp {
             isOnLoginScreen = false;
         }
     }
-
     public static void enableLoginScreen(){
         if(!isOnLoginScreen) {
             mainFrame.remove(loginPanel);
@@ -255,24 +356,22 @@ public class MainApp {
     }
 
 
-    public static void setOnlineMembers(String[] members) {
-        onlineMembers = new ArrayList<>(Arrays.asList(members));
-        Collections.sort(onlineMembers);
+    // Adding or removing online members from list
+    public static void addOnlineMembers(String[] members){
+        onlineMembers.addAll(Arrays.asList(members));
         reloadOnlineMembers();
     }
-
     public static void addOnlineMember(String member){
         onlineMembers.add(member);
-        Collections.sort(onlineMembers);
         reloadOnlineMembers();
     }
-
     public static void removeOnlineMember(String member){
         onlineMembers.remove(member);
         reloadOnlineMembers();
     }
 
 
+    // Returns time as string like "[12:00]"
     public static String getTimeFromStamp(Long timeStamp){
         LocalDateTime localDateTime = new Timestamp(timeStamp).toLocalDateTime();
 
@@ -282,105 +381,21 @@ public class MainApp {
         return time;
     }
 
-    public static void reconnect() {
-        if(client != null && !client.isClosed()) {
-            disconnect();
-        }
-        client = new MyWebSocketClient(serverUri);
-        client.connect();
-    }
 
-    public static void disconnect(){
-        JSONObject json = new JSONObject();
-        json.put("username", username);
-        json.put("password", password);
-        if(client.isOpen()) {
-            client.send("disconnect " + json.toJSONString());
-        }
-        client.close();
-    }
-
-    public static void handleConnection(JSONObject json){
-        Boolean status = (Boolean) json.get("status");
-        String reason = (String) json.get("reason");
-        String username = (String) json.get("username");
-        String time = getTimeFromStamp((Long) json.get("timestamp"));
-
-        if(status) {
-            System.out.printf("%s has joined the chat.\n%s%n", username, time);
-            chatContentPane.setText(chatContentPane.getText() + time + " " + username + " присоединился к чату!\n");
-            if(Objects.equals(username, MainApp.username)) {
-                enableChatScreen();
-            } else {
-                addOnlineMember(username);
-            }
-        } else {
-            System.out.println("Cant log in: " + reason);
-            loginErrorLabel.setText("Не удалось авторизоваться: " + reason);
-        }
-    }
-
-    public static void handleDisconnection(JSONObject json){
-        String username = (String) json.get("username");
-        String time = getTimeFromStamp((Long) json.get("timestamp"));
-        Boolean status = (Boolean) json.get("status");
-
-        if(status) {
-            System.out.printf("%s disconnected from chat.\n%s%n", username, time);
-            chatContentPane.setText(chatContentPane.getText() + time + " " + username + " вышел из чата.\n");
-            removeOnlineMember(username);
-        }
-    }
-
-    public static void handleMessage(JSONObject json) {
-        String time = getTimeFromStamp((Long)json.get("timestamp"));
-        String author = (String) json.get("author");
-        String content = (String) json.get("content");
-
-        System.out.printf("%s: %s\n%s%n", author, content, time);
-        chatContentPane.setText(chatContentPane.getText() + time + " " + author + ": " + content + "\n");
-    }
-
-    public static void handleMap(JSONObject json) {
-        JSONArray jsonMembers = (JSONArray) json.get("authedmembers");
-        String key = (String) json.get("key");
-        MainApp.encryptKey = key;
-
-        Object[] objMembers = jsonMembers.toArray();
-        String[] members = new String[objMembers.length];
-        for(int i = 0; i < members.length; i++) {
-            members[i] = (String) objMembers[i];
-        }
-
-        setOnlineMembers(members);
-    }
-
-    public MainApp() throws Throwable {
-        Runtime.getRuntime().addShutdownHook(new Thread(MainApp::disconnect));
-
-        reconnect();
+    public MainApp() {
+        client = new MyWebSocketClient(serverUri, new HopaMessengerMessageHandler());
 
         enableLoginScreen();
-        //enableChatScreen();
+        enableChatScreen();
 
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setVisible(true);
         mainFrame.setResizable(false);
 
-        while(true){
-            String string = input.next() + input.nextLine();
-
-            if(string.equals("EXIT")) {
-                client.close();
-                return;
-            } else {
-                try {
-                    client.sendMessage(string);
-                } catch (WebsocketNotConnectedException ex) {
-                    System.out.println("Connection lost! Try to reconnect.");
-                }
-            }
-        }
+        createNewChatMessage("mex312 присоеденился к чату", "");
+        createNewChatMessage("mex312: ", "Это не зашифрованное сообщение");
+        createNewChatMessage("mex312: ", new Encryptor("FFFF").encrypt("Это зашифрованное сообщение"));
+        createNewChatMessage("mex312: ", new Encryptor("1111").encrypt("Это другое зашифрованное сообщение"));
     }
 
     public static void main(String[] args) throws Throwable {

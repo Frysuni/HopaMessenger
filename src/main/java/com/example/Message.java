@@ -1,34 +1,23 @@
 package com.example;
 
-import javax.swing.*;
-import java.awt.*;
+public class Message {
+    public final String notEncryptedPart;
+    public final String encryptedPart;
 
-public class Message extends JTextPane {
-    String author;
-    String content;
-    String time;
+    public Message(String notEncryptedPart, String encryptedPart) {
+        this.notEncryptedPart = notEncryptedPart;
+        this.encryptedPart = encryptedPart;
+    }
 
-    public Message (String author, String content, String time){
-        super();
+    public String getNotEncryptedPart() {
+        return notEncryptedPart;
+    }
 
-        this.author = author;
-        this.content = content;
-        this.time = time;
+    public String getEncryptedPart() {
+        return encryptedPart;
+    }
 
-        setMinimumSize(new Dimension(700, 25));
-        setPreferredSize(new Dimension(700, 25));
-        setMaximumSize(new Dimension(700, 1000));
-        setText(author + ": " + content);
-        setBounds(0, 0, 700, getSize().height);
-        setOpaque(false);
-        setEditable(false);
-
-
-        JLabel timeLabel = new JLabel(time);
-
-        timeLabel.setBounds(600, 0, 100, 25);
-        timeLabel.setPreferredSize(new Dimension(100, 25));
-
-        add(timeLabel);
+    public String toString(){
+        return notEncryptedPart + encryptedPart;
     }
 }
