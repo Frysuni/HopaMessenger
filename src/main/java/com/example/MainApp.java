@@ -386,7 +386,7 @@ public class MainApp {
         client = new MyWebSocketClient(serverUri, new HopaMessengerMessageHandler());
 
         enableLoginScreen();
-        enableChatScreen();
+        //enableChatScreen();
 
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setVisible(true);
