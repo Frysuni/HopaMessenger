@@ -3,6 +3,7 @@ package com.example;
 import com.sun.org.apache.xerces.internal.impl.dv.util.HexBin;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.json.simple.*;
+import org.omg.SendingContext.RunTime;
 import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.security.crypto.keygen.KeyGenerators;
@@ -13,6 +14,8 @@ import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
@@ -66,13 +69,33 @@ public class MainApp {
     public static JFrame mainFrame = new JFrame("HopaMessenger");
 
 
+    public static MouseAdapter dragger = new MouseAdapter() {
+        int offsetX;
+        int offsetY;
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+            offsetX = e.getX();
+            offsetY = e.getY();
+        }
+
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            mainFrame.setLocation(e.getXOnScreen() - offsetX, e.getYOnScreen() - offsetY);
+        }
+    };
+
+
     // All things login screen needs
+    public static LoginScreen loginScreen = new LoginScreen();
     public static JPanel loginPanel = new JPanel();
     public static JLabel loginErrorLabel = new JLabel();
     static {
         loginPanel.setLayout(null);
         loginPanel.setPreferredSize(new Dimension(500, 300));
         loginPanel.setBounds(0, 0, 500, 300);
+        loginPanel.addMouseListener(dragger);
+        loginPanel.addMouseMotionListener(dragger);
 
         JLabel fryshostLabel = new JLabel("Введите данные учётной записи FrysHost");
         JLabel usernameLabel = new JLabel("Логин: ");
@@ -181,6 +204,8 @@ public class MainApp {
         chatPanel.setLayout(null);
         chatPanel.setPreferredSize(new Dimension(800, 600));
         chatPanel.setBounds(0, 0, 800, 600);
+        chatPanel.addMouseListener(dragger);
+        chatPanel.addMouseMotionListener(dragger);
 
         JScrollPane scrollPane = new JScrollPane(chatContentPane);
         JScrollBar scrollBar = scrollPane.getVerticalScrollBar();
@@ -362,7 +387,6 @@ public class MainApp {
     }
     public static HashSet<String> onlineMembers = new HashSet<>();
     public static ArrayList<Message> messages = new ArrayList<>();
-
     public static void reloadOnlineMembers(){
         onlineMembersPane.setText("");
 
@@ -414,26 +438,61 @@ public class MainApp {
     }
 
 
+    // All things update screen needs
+    public static JPanel updatingPanel = new JPanel();
+    static {
+        updatingPanel.setLayout(null);
+        updatingPanel.setPreferredSize(new Dimension(400, 400));
+        updatingPanel.setBounds(0, 0, 400, 400);
+        Integer[] offset = new Integer[2];
+        updatingPanel.addMouseListener(dragger);
+        updatingPanel.addMouseMotionListener(dragger);
+
+        JLabel updatingLabel = new JLabel("Updating...");
+
+        updatingPanel.setBackground(backgroundColor);
+        updatingLabel.setForeground(foregroundColor);
+
+        updatingLabel.setBounds(150, 190, 100, 25);
+
+        updatingPanel.add(updatingLabel);
+    }
+
+
+    //
+    public static void clearFrame(){
+        mainFrame.dispose();
+        mainFrame.remove(chatPanel);
+        mainFrame.remove(loginPanel);
+        mainFrame.remove(updatingPanel);
+    }
+
+
     // Switching between screens
     public static void enableChatScreen(){
         if(isOnLoginScreen) {
-            mainFrame.remove(loginPanel);
-            mainFrame.remove(chatPanel);
+            clearFrame();
+            mainFrame.setUndecorated(true);
             mainFrame.add(chatPanel);
             mainFrame.pack();
             mainFrame.setLocationRelativeTo(null);
             isOnLoginScreen = false;
+            mainFrame.setVisible(true);
         }
     }
     public static void enableLoginScreen(){
         if(!isOnLoginScreen) {
-            mainFrame.remove(loginPanel);
-            mainFrame.remove(chatPanel);
-            mainFrame.add(loginPanel);
-            mainFrame.pack();
-            mainFrame.setLocationRelativeTo(null);
-            isOnLoginScreen = true;
+            clearFrame();
+            loginScreen.setVisible(true);
         }
+    }
+    public static void enableUpdatingScreen(){
+        clearFrame();
+        mainFrame.setUndecorated(true);
+        mainFrame.add(updatingPanel);
+        mainFrame.pack();
+        mainFrame.setLocationRelativeTo(null);
+        mainFrame.setVisible(true);
     }
 
 
@@ -469,9 +528,9 @@ public class MainApp {
         enableLoginScreen();
         //enableChatScreen();
 
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        mainFrame.setVisible(true);
-        mainFrame.setResizable(false);
+        //mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //mainFrame.setVisible(true);
+        //mainFrame.setResizable(true);
 
         //printNewChatMessage(new Message("mex312 присоеденился к чату", ""));
         //printNewChatMessage(new Message("mex312: Это не зашифрованное сообщение", ""));
@@ -479,7 +538,40 @@ public class MainApp {
         //printNewChatMessage(new Message("mex312: ", new Encryptor("1111").encrypt("Это другое зашифрованное сообщение")));
     }
 
-    public static void main(String[] args) throws Throwable {
-        new MainApp();
+    static void update() {
+        enableUpdatingScreen();
+
+        File updated1;
+
+        try {
+            updated1 = new File(MainApp.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+        } catch (URISyntaxException ex){
+            ex.printStackTrace();
+            updated1 = null;
+        }
+
+        final File updated = updated1;
+        if(updated != null) {
+
+            Timer timer = new Timer(5000, on -> {
+                try {
+                    Runtime.getRuntime().exec(new String[]{"java", "-jar", updated.getPath(), "Up to date"});
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                System.exit(0);
+            });
+            timer.start();
+        }
+    }
+
+    public static void main(String[] args) {
+        if(args.length == 0) {
+            new MainApp();
+            //update();
+        }
+        else {
+            new MainApp();
+        }
     }
 }
