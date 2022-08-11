@@ -6,7 +6,7 @@ async function authorizateMember(username, password) {
     if (!result.rows[0]) { return 3511; }
     else if (!password) { return 3512; }
     else if (!bcrypt.compareSync(password.toString(), result.rows[0].password)) { return 3512; }
-    else if (bcrypt.compareSync(password.toString(), result.rows[0].password)) { return `connected {"username":"${username}","timestamp":"${Date.now()}"}`; }
+    else if (bcrypt.compareSync(password.toString(), result.rows[0].password)) { return `connected {"username":"${username}","timestamp":${Date.now()}}`; }
     else { return 3510; }
 }
 

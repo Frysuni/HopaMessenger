@@ -1,25 +1,9 @@
 const WebSocket = require('ws');
 const { WebSocketSrv } = require('./server.js');
-const { MessageHandler } = require('../MessageHandler.js');
 const { Logger } = require('../logger/logger.js');
 const { authorizateMember } = require('../authorization/authorizateMember.js');
 const { declareConnect, declareDisconnect } = require('../authorization/declare.js');
-/*
-async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
- async function chesckAlive(WSConnection, WSConnectionData) {
-    setInterval(() => {
-        WSConnection.on('pong', () => this.isAlivee = true);
-        WebSocketSrv.clients.forEach(function each(ws) {
-            if (ws.isAlivee === false) return ws.terminate();
-
-            ws.isAlivee = false;
-            ws.ping();
-          });
-    }, 10000);
-}*/
+const { Chatter } = require('../chat/chatter.js');
 
 WebSocketSrv.on('connection', async (WSConnection, WSConnectionData) => {
     WSConnection.ip = WSConnectionData.socket.remoteAddress.replace('::ffff:', '');
@@ -59,30 +43,9 @@ WebSocketSrv.on('connection', async (WSConnection, WSConnectionData) => {
         if (code == 3500 || code == 3510 || code == 3511 || code == 3512 || code == 3513) return;
         declareDisconnect(WebSocketSrv, WSConnection);
     });
-    /* WSConnection.isAlivee = true;
-    console.log(WSConnection.isAlivee)
-    WSConnection.on('pong', () => {
-        WSConnection.isAlivee = true;
-        console.log('huy')
-    });*/
 
     WSConnection.on('message', async (msg) => {
         Logger.Debug('RECIEVE: ' + msg);
-        WSConnection.send(await MessageHandler(`${msg}`, WebSocketSrv.clients));
+        WSConnection.send(await Chatter(`${msg}`, WebSocketSrv.clients));
     });
 });
-/* WebSocketSrv.on('headers', (headers, req) => {
-    req.huy = 'huy';
-    // console.log(headers, req);
-});*/
-/* const interval = setInterval(() => {
-    WebSocketSrv.clients.forEach((WSConnection) => {
-        if (WSConnection.isAlivee == false) {
-            console.log(WSConnection.isAlivee);
-            Logger.Error('Потеряно соединение с ' + WSConnection.ip);
-            return WSConnection.terminate();
-        }
-        WSConnection.isAlivee = false;
-        WSConnection.ping();
-    });
-}, 1000); */
