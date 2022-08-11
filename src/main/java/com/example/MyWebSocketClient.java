@@ -26,6 +26,7 @@ public class MyWebSocketClient extends WebSocketClient {
         MainApp.isConnecting = false;
         System.out.println("Connected");
         MainApp.loginErrorLabel.setText("Подключено");
+        MainApp.isConnecting = false;
     }
 
     @Override
@@ -108,6 +109,8 @@ public class MyWebSocketClient extends WebSocketClient {
             MainApp.loginErrorLabel.setText("Отключено");
         }
         MainApp.enableLoginScreen();
+
+        MainApp.isConnecting = false;
     }
 
     @Override
@@ -121,6 +124,5 @@ public class MyWebSocketClient extends WebSocketClient {
         json.put("content", message);
         json.put("author", MainApp.username);
         send("message " + json.toJSONString());
-        MainApp.isConnecting = false;
     }
 }
